@@ -1,0 +1,119 @@
+---
+title: "Analiza danych studentów portugalskiej szkoły"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(tidyverse)
+library(pander)
+library(knitr)
+library(ggplot2)
+# sometimes R cannot find file I want to open - in that case setwd() is needed
+
+student <- read.csv("student-por.csv",
+                       sep = ";")
+student
+```
+
+# Demografia
+
+## Płeć
+```{r}
+student$sex <- ifelse(student$sex=="M",'Mężczyzna','Kobieta')
+pander(table(student$sex))
+ggplot(student, aes(x = sex)) +
+    geom_bar(fill = c("pink","blue")) +
+    labs(title = "Rozkład płci", x = "Płeć", y = "Liczba osób")
+
+```
+
+
+
+## Wiek osób badanych z podziałem na płeć (w procentach)
+```{r}
+tab_wiek_a_plec <- prop.table(table(student$age,student$sex))
+pander(round(tab_wiek_a_plec*100,1))
+```
+
+## Wykształcenie matki z podziałem na płeć (w procentach)
+```{r}
+student$EdukacjaMatki  <- recode(student$Medu,`0`="brak",`1`="podstawowe",
+                               `2`="5 do 9 klasy",`3`="średnie",`4`="wyższe") 
+student$EdukacjaMatki <- factor(student$EdukacjaMatki,
+                             levels = c("brak",
+                                        "podstawowe",
+                                        "5 do 9 klasy",
+                                        "średnie",
+                                        "wyższe"),
+                             ordered = T
+                             )
+tab_edukacjam_plec <- prop.table(table(student$sex,student$EdukacjaMatki))
+
+  
+pander(round(tab_edukacjam_plec*100,1))
+
+```
+
+## Wykształcenie ojca z podziałem na płeć (w procentach)
+```{r}
+student$EdukacjaOjca <- recode(student$Fedu,`0`="brak",`1`="podstawowe",
+                               `2`="5 do 9 klasy",`3`="średnie",`4`="wyższe")
+student$EdukacjaOjca <- factor(student$EdukacjaOjca,
+                             levels = c("brak",
+                                        "podstawowe",
+                                        "5 do 9 klasy",
+                                        "średnie",
+                                        "wyższe"),
+                             ordered = T
+                             )
+tab_edukacjao_plec <- prop.table(table(student$sex,student$EdukacjaOjca))
+
+pander(round(tab_edukacjao_plec*100,1))
+
+
+```
+## Zawód matki z podziałem na płeć
+```{r}
+student$zawodmamy <- recode(student$Mjob, `teacher` = "nauczycielka",
+                               `health` = "zdrowie",
+                               `services` = "usługi",
+                               `at_home` = "praca w domu",
+                               `other` = "inna praca")
+tab_zawodmamy_plec <- prop.table(table(student$sex,student$zawodmamy))
+pander(round(tab_zawodmamy_plec*100,1))
+```
+## Zawód ojca z podziałem na płeć
+```{r}
+student$zawodojca <- recode(student$Fjob, `teacher` = "nauczyciel",
+                               `health` = "zdrowie",
+                               `services` = "usługi",
+                               `at_home` = "praca w domu",
+                               `other` = "inna praca")
+tab_zawodojca_plec <- prop.table(table(student$sex,student$zawodojca))
+pander(round(tab_zawodojca_plec*100,1))
+```
+
+# Wyniki
+## Stan zdrowotny a wyniki w nauce (w zależności od płci)
+Skala zdrowia jest od 1 do 5, gdzie 1 to najsłabszy wynik, a 5 to najlepszy.
+```{r}
+zdrowie_a_oceny <- student %>%
+    group_by(Zdrowie = health, Płeć =sex) %>%
+    summarise(srednia_ocena = mean(G3, na.rm = TRUE))
+kable(zdrowie_a_oceny)
+
+ggplot(zdrowie_a_oceny, aes(x = factor(Zdrowie), y = srednia_ocena, fill = Płeć)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Wykres danych",
+       x = "Zdrowie",
+       y = "Średnia ocena") +
+  scale_fill_manual(values = c("Kobieta" = "pink", "Mężczyzna" = "blue"))
+
+
+
+
+
+```
